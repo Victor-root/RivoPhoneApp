@@ -112,6 +112,18 @@
             android:directBootAware="true"
             android:theme="@style/Theme.RivoPhone" />
 
+        <!--
+          Invisible, and only ever reached from the missed call notification's
+          own action buttons.
+        -->
+        <activity
+            android:name=".controller.MissedCallActionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:directBootAware="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".controller.CallService"
             android:permission="android.permission.BIND_INCALL_SERVICE"

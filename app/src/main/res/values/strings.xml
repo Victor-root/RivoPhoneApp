@@ -219,6 +219,7 @@
     <string name="notif_blocked_call_title">Blocked Call</string>
     <string name="notif_blocked_call_text">Blocked call from %1$s</string>
     <string name="notif_missed_call_title">Missed Call</string>
+    <string name="notif_missed_call_call_back">Call back</string>
     <string name="notif_missed_call_text">Missed call from %1$s at %2$s</string>
     <string name="notif_via_sim">via %1$s</string>
     <string name="notif_active_call">Active call</string>

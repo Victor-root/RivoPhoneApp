@@ -158,7 +158,45 @@ class MissedCallReceiver : BroadcastReceiver(), KoinComponent {
             .setAutoCancel(true)
             .setColor(Color.RED)
 
+        // Only for a number worth acting on. A withheld or unknown caller
+        // leaves nothing to call back or write to.
+        if (number.isNotEmpty()) {
+            builder.addAction(
+                android.R.drawable.sym_action_call,
+                context.getString(R.string.notif_missed_call_call_back),
+                actionIntent(context, number, MissedCallActionActivity.ACTION_CALL_BACK),
+            )
+            builder.addAction(
+                android.R.drawable.sym_action_chat,
+                context.getString(R.string.action_message),
+                actionIntent(context, number, MissedCallActionActivity.ACTION_MESSAGE),
+            )
+        }
+
         notificationManager.notify(number.hashCode(), builder.build())
+    }
+
+    /**
+     * Goes through [MissedCallActionActivity] rather than straight to the dialer
+     * or the SMS app, because tapping an action leaves the notification on
+     * screen and only our own code can take it down.
+     */
+    private fun actionIntent(context: Context, number: String, action: String): PendingIntent {
+        // The action is set on the intent as well as passed as an extra, and
+        // both are needed: pending intents are told apart by action and data,
+        // never by their extras, so without it the two buttons would collapse
+        // into one and whichever was built last would win.
+        val intent = Intent(context, MissedCallActionActivity::class.java)
+            .setAction(action)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra(MissedCallActionActivity.EXTRA_ACTION, action)
+            .putExtra(MissedCallActionActivity.EXTRA_NUMBER, number)
+        return PendingIntent.getActivity(
+            context,
+            number.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     private fun getContactBitmap(context: Context, photoUri: String?): Bitmap? {

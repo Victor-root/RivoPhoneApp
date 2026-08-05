@@ -219,6 +219,7 @@
     <string name="notif_blocked_call_title">Appel bloqué</string>
     <string name="notif_blocked_call_text">Appel bloqué de %1$s</string>
     <string name="notif_missed_call_title">Appel manqué</string>
+    <string name="notif_missed_call_call_back">Rappeler</string>
     <string name="notif_missed_call_text">Appel manqué de %1$s à %2$s</string>
     <string name="notif_via_sim">via %1$s</string>
     <string name="notif_active_call">Appel en cours</string>
