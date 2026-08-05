@@ -126,6 +126,20 @@
             </intent-filter>
         </service>
 
+        <!--
+          Telecom hands missed call notifications to the default dialer only if
+          it finds a receiver for this action in the manifest. Without the entry
+          the system posts its own alongside ours.
+        -->
+        <receiver
+            android:name=".controller.MissedCallReceiver"
+            android:directBootAware="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.action.SHOW_MISSED_CALLS_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.provider.BlockedNumberContract
@@ -55,7 +54,6 @@ class CallService : InCallService() {
 
     companion object {
         private const val CHANNEL_ID = "call_channel"
-        private const val MISSED_CHANNEL_ID = "missed_call_channel"
         private const val NOTIFICATION_ID = 101
 
         private val _currentCallSession = MutableStateFlow<CallSession?>(null)
@@ -205,15 +203,10 @@ class CallService : InCallService() {
             }
         }
 
-        // Missed Call Notification
-        val wasNeverConnected = call.details.connectTimeMillis == 0L
-        val isIncoming = call.details.callDirection == Call.Details.DIRECTION_INCOMING
-        
-        if (isIncoming && wasNeverConnected && (cause?.code == DisconnectCause.MISSED || cause?.code == DisconnectCause.REMOTE || cause?.code == DisconnectCause.REJECTED)) {
-            if (!isNumberBlocked(number) || preferenceManager.getInt(PreferenceManager.KEY_BLOCK_LOG_VISIBILITY, 0) == 1) {
-                showMissedCallNotification(call)
-            }
-        }
+        // Missed call notifications are posted by MissedCallReceiver, from the
+        // broadcast Telecom sends the default dialer. Deciding here as well
+        // would post a second one, and the disconnect cause is only a guess:
+        // REJECTED means the user declined, which is not a missed call.
     }
 
     private fun isNumberBlocked(number: String): Boolean {
@@ -250,65 +243,6 @@ class CallService : InCallService() {
             .setContentText(getString(R.string.notif_blocked_call_text, number))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
-
-        notificationManager.notify(number.hashCode(), builder.build())
-    }
-
-    private fun showMissedCallNotification(call: Call) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(MISSED_CHANNEL_ID, getString(R.string.notif_channel_missed_calls), NotificationManager.IMPORTANCE_DEFAULT).apply {
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                enableVibration(true)
-                setShowBadge(true)
-            }
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val handle = call.details.handle
-        val number = handle?.schemeSpecificPart ?: ""
-
-        val contact = if (number.isNotEmpty()) {
-            try {
-                contactsRepository.getContactByNumber(number)
-            } catch (e: Exception) { null }
-        } else null
-
-        val contactName = contact?.name ?: number.ifEmpty { getString(R.string.label_unknown_number) }
-        val contactPhoto = getContactBitmap(contact?.photoUri)
-
-        val telecomManager = getSystemService(Context.TELECOM_SERVICE) as TelecomManager
-        val simLabel = call.details.accountHandle?.let {
-            try { telecomManager.getPhoneAccount(it)?.label?.toString() } catch (e: SecurityException) { null }
-        }
-
-        val intent = Intent(this, com.grinch.rivo4.MainActivity::class.java).apply {
-            action = "com.grinch.rivo4.ACTION_VIEW_RECENTS"
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(this, 10, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
-        val timeString = android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date())
-
-        val missedCallText = buildString {
-            append(getString(R.string.notif_missed_call_text, contactName, timeString))
-            if (simLabel != null) {
-                append(" ")
-                append(getString(R.string.notif_via_sim, simLabel))
-            }
-        }
-
-        val builder = NotificationCompat.Builder(this, MISSED_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.sym_call_missed)
-            .setContentTitle(getString(R.string.notif_missed_call_title))
-            .setContentText(missedCallText)
-            .setLargeIcon(contactPhoto)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .setColor(Color.RED)
 
         notificationManager.notify(number.hashCode(), builder.build())
     }
